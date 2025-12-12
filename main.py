@@ -117,31 +117,79 @@ def gen_pagination(filt):
     total_rows = len(filt)
     total_pages = (total_rows - 1) // rows_per_page + 1
 
+    st.subheader(f"Страниц найдено : {total_pages}")
+
     if "page" not in st.session_state:
         st.session_state.page = 1
 
-    # Кнопки навигации
-    col1, col2, col3 = st.columns([1, 2, 1])
+    # Ограничить в пределах
+    st.session_state.page = min(max(1, st.session_state.page), total_pages)
 
-    with col1:
-        if st.button("⬅️ Назад") and st.session_state.page > 1:
-            st.session_state.page -= 1
+    # ---------- РАСЧЁТ ОКНА ПАГИНАЦИИ ----------
+    window = 9  # максимальное число отображаемых страниц
+    half = window // 2
 
-    with col3:
-        if st.button("Вперёд ➡️") and st.session_state.page < total_pages:
-            st.session_state.page += 1
+    if total_pages <= window:
+        pages = list(range(1, total_pages + 1))
+    else:
+        start = max(1, st.session_state.page - half)
+        end = min(total_pages, start + window - 1)
 
-    # Показ номера страницы
-    with col2:
-        st.markdown(f"### Страница {st.session_state.page} / {total_pages}")
+        # Коррекция начала окна
+        if end - start < window - 1:
+            start = max(1, end - window + 1)
 
-    # Индексы текущей страницы
+        pages = list(range(start, end + 1))
+
+
+    # ---------- ОТРИСОВКА ПАГИНАЦИИ ----------
+    col_prev, col_pages, col_next = st.columns([1, 10, 1])
+
+    # ← НАЗАД
+    with col_prev:
+        st.markdown("<div class='arrow-btn'>", unsafe_allow_html=True)
+        if st.button("←", key="prev") and st.session_state.page > 1:
+            st.session_state.page -= window 
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # Номера страниц
+    with col_pages:
+        cols = st.columns(len(pages))
+        for idx, p in enumerate(pages):
+
+            if p == st.session_state.page:
+                cols[idx].markdown("<div>", unsafe_allow_html=True)
+                if cols[idx].button(f"->{str(p)}", key=f"page_{p}"):
+                    pass
+                cols[idx].markdown("</div>", unsafe_allow_html=True)
+                
+            else:
+                cols[idx].markdown("<div>", unsafe_allow_html=True)
+                if cols[idx].button(str(p), key=f"page_{p}"):
+                    st.session_state.page = p
+                    st.rerun()
+                    
+                cols[idx].markdown("</div>", unsafe_allow_html=True)
+
+    # → ВПЕРЁД
+    with col_next:
+        st.markdown("<div class='arrow-btn'>", unsafe_allow_html=True)
+        if st.button("→", key="next") and st.session_state.page < total_pages:
+            st.session_state.page += window 
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
+    # ---------- Срез данных текущей страницы ----------
     start = (st.session_state.page - 1) * rows_per_page
     end = start + rows_per_page
 
     filtered_page = filt.iloc[start:end]
 
     return filtered_page
+
+
 
 if search_text:
 
@@ -225,9 +273,10 @@ if search_text:
 
             st.markdown("</div>", unsafe_allow_html=True)
 else:
-    st.subheader("📋 Список врачей")
 
     filtered_page = gen_pagination(filtered)
+
+    st.subheader("📋 Список врачей")
 
     st.divider()
 
