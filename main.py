@@ -143,12 +143,19 @@ def gen_pagination(filt):
 
 
     # ---------- ОТРИСОВКА ПАГИНАЦИИ ----------
-    col_prev, col_pages, col_next = st.columns([1, 10, 1])
+    col_prev_up, col_prev, col_pages, col_next, col_next_up = st.columns([1, 1, 10, 1, 1])
 
     # ← НАЗАД
     with col_prev:
         st.markdown("<div class='arrow-btn'>", unsafe_allow_html=True)
         if st.button("←", key="prev") and st.session_state.page > 1:
+            st.session_state.page -= 1 
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_prev_up:
+        st.markdown("<div class='arrow-btn'>", unsafe_allow_html=True)
+        if st.button("←←", key="prev_up") and st.session_state.page != 1:
             st.session_state.page -= window 
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
@@ -176,6 +183,13 @@ def gen_pagination(filt):
     with col_next:
         st.markdown("<div class='arrow-btn'>", unsafe_allow_html=True)
         if st.button("→", key="next") and st.session_state.page < total_pages:
+            st.session_state.page += 1 
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_next_up:
+        st.markdown("<div class='arrow-btn'>", unsafe_allow_html=True)
+        if st.button("→→", key="next_up") and st.session_state.page < total_pages:
             st.session_state.page += window 
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
