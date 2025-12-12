@@ -100,10 +100,8 @@ if len(filtered["Ученая степень"].isin(degree).unique()) != 1 or mi
         (filtered["Сумма Рейтинг"] >= min_rating)
     ]
 
-st.subheader("📋 Список врачей по фильтрам")
 
 # ---------------- Кнопки "Показать отзывы" ----------------
-st.subheader("Выберите врача для просмотра отзывов")
 
 output_placeholder = st.empty()
 
@@ -111,96 +109,162 @@ rows_per_page = st.sidebar.number_input(
     "Врачей на странице:",
     min_value=5,
     max_value=100,
-    value=20,
+    value=10,
     step=5
 )
 
-filtered = filtered_reviews.merge(filtered, on="Ссылка", how="left")
-filtered = filtered.sort_values(by=["Имя врача"])
+def gen_pagination(filt):
+    total_rows = len(filt)
+    total_pages = (total_rows - 1) // rows_per_page + 1
+
+    if "page" not in st.session_state:
+        st.session_state.page = 1
+
+    # Кнопки навигации
+    col1, col2, col3 = st.columns([1, 2, 1])
+
+    with col1:
+        if st.button("⬅️ Назад") and st.session_state.page > 1:
+            st.session_state.page -= 1
+
+    with col3:
+        if st.button("Вперёд ➡️") and st.session_state.page < total_pages:
+            st.session_state.page += 1
+
+    # Показ номера страницы
+    with col2:
+        st.markdown(f"### Страница {st.session_state.page} / {total_pages}")
+
+    # Индексы текущей страницы
+    start = (st.session_state.page - 1) * rows_per_page
+    end = start + rows_per_page
+
+    filtered_page = filt.iloc[start:end]
+
+    return filtered_page
+
+if search_text:
+
+    st.subheader("📋 Список отзывов")
+
+    filtered_reviews = reviews[reviews["Отзыв"].str.contains(search_text, case=False, na=False)]
+
+    filtered = filtered_reviews.merge(filtered, on="Ссылка", how="left")
+    filtered = filtered.sort_values(by=["Имя врача"])
 
 
-filtered["Имя врача"] = filtered.groupby("Ссылка")["Имя врача"] \
-    .transform(lambda x: [x.iloc[0]] + [""] * (len(x)-1))
+    filtered["Имя врача"] = filtered.groupby("Ссылка")["Имя врача"] \
+        .transform(lambda x: [x.iloc[0]] + [""] * (len(x)-1))
 
-# --- То же для специальности ---
-# Перед этим сохраняем специальность (у врача она одна)
-filtered["Специальность"] = filtered.groupby("Ссылка")["Специальность"] \
-    .transform(lambda x: [x.iloc[0]] + [""] * (len(x)-1))
+    # --- То же для специальности ---
+    # Перед этим сохраняем специальность (у врача она одна)
+    filtered["Специальность"] = filtered.groupby("Ссылка")["Специальность"] \
+        .transform(lambda x: [x.iloc[0]] + [""] * (len(x)-1))
 
-filtered["Ссылка"] = filtered.groupby("Ссылка")["Ссылка"] \
-    .transform(lambda x: [x.iloc[0]] + [""] * (len(x)-1))
+    filtered["Ссылка"] = filtered.groupby("Ссылка")["Ссылка"] \
+        .transform(lambda x: [x.iloc[0]] + [""] * (len(x)-1))
 
-total_rows = len(filtered)
-total_pages = (total_rows - 1) // rows_per_page + 1
-
-page = st.sidebar.number_input(
-    "Страница:",
-    min_value=1,
-    max_value=total_pages,
-    value=1
-)
-
-start_row = (page - 1) * rows_per_page
-end_row = start_row + rows_per_page
-
-filtered_page = filtered.iloc[start_row:end_row]
-
-header_cols = st.columns([2, 2, 2, 1, 6])
-
-with header_cols[0]:
-    st.markdown("**Ссылка**")
-with header_cols[1]:
-    st.markdown("**Имя врача**")
-#with header_cols[2]:
- #   st.markdown("**Стаж (лет)**")
-with header_cols[2]:
-    st.markdown("**Специальность**")
-with header_cols[3]:
-    st.markdown("**Оценка**")
-with header_cols[4]:
-    st.markdown("**Отзывы**")
-#with header_cols[4]:
-#    st.markdown("**Клиники**")
-#with header_cols[5]:
-#    st.markdown("**Отзывов**")
-#with header_cols[6]:
-#    st.markdown("**Рейтинг**")
+    filtered_page = gen_pagination(filtered)
 
 
-for idx, row in filtered_page.iterrows():
-    with st.container():
-        st.markdown("""
-        <div style="padding:10px; border-bottom:1px solid #ccc;">
-        """, unsafe_allow_html=True)
+    header_cols = st.columns([2, 2, 2, 1, 6])
 
-        columns = st.columns([2, 2, 2, 1, 6])
+    with header_cols[0]:
+        st.markdown("**Ссылка**")
+    with header_cols[1]:
+        st.markdown("**Имя врача**")
+    #with header_cols[2]:
+    #   st.markdown("**Стаж (лет)**")
+    with header_cols[2]:
+        st.markdown("**Специальность**")
+    with header_cols[3]:
+        st.markdown("**Оценка**")
+    with header_cols[4]:
+        st.markdown("**Отзывы**")
+    #with header_cols[4]:
+    #    st.markdown("**Клиники**")
+    #with header_cols[5]:
+    #    st.markdown("**Отзывов**")
+    #with header_cols[6]:
+    #    st.markdown("**Рейтинг**")
+
+
+    for idx, row in filtered_page.iterrows():
+        with st.container():
+            st.markdown("""
+            <div style="padding:10px; border-bottom:1px solid #ccc;">
+            """, unsafe_allow_html=True)
+
+            columns = st.columns([2, 2, 2, 1, 6])
+            with columns[0]:
+                st.write(row['Ссылка'])
+            with columns[1]:
+                if row["Имя врача"]:
+                    st.write(f"**{row['Имя врача']}**")
+                    with st.expander("Подробнее о враче"):
+                        st.write(f"**Стаж:** {row.get('Сумма Стаж', '—')} лет")
+                        st.write(f"**Ученая степень:** {row.get('Ученая степень', '—')}")
+                        st.write(f"**Учереждения:** {row.get('Работает в клиниках', '—')}")
+                        st.write(f"**Отзывов:** {row.get('Сумма Отзывов', '—')}")
+                        st.write(f"**Рейтинг:** {row.get('Сумма Рейтинг', '—')}")
+            with columns[2]:
+                st.write(row["Специальность"])
+            with columns[3]:
+                st.write(row.get("Рейтинг_1", "—"))
+            with columns[4]:
+                if search_text.strip() == "":
+                    st.write(row["Отзыв"])
+                else:
+                    highlighted = highlight_keywords(row["Отзыв"], search_text)
+                    st.markdown(highlighted, unsafe_allow_html=True)
+                with st.expander("Подробнее об отзыве"):
+                    st.write(f"**Имя клиента:** {row.get('Имя клиента', '—')}")
+                    st.write(f"**Дата отзыва:** {row.get('Дата отзыва', '—')}")
+                    st.write(f"**Оценка:** {row.get('Рейтинг_1', '—')}")
+                    st.write(f"**Подтверждение записи:** {row.get('Подтверждение записи', '—')}")
+
+            st.markdown("</div>", unsafe_allow_html=True)
+else:
+    st.subheader("📋 Список врачей")
+
+    filtered_page = gen_pagination(filtered)
+
+    st.divider()
+
+    output_placeholder = st.empty()
+
+    for idx, row in filtered_page.iterrows():
+        columns = st.columns([3, 3, 2, 2, 4, 2, 2, 2])
+
         with columns[0]:
             st.write(row['Ссылка'])
         with columns[1]:
-            if row["Имя врача"]:
-                st.write(f"**{row['Имя врача']}**")
-                with st.expander("Подробнее о враче"):
-                    st.write(f"**Стаж:** {row.get('Сумма Стаж', '—')} лет")
-                    st.write(f"**Ученая степень:** {row.get('Ученая степень', '—')}")
-                    st.write(f"**Учереждения:** {row.get('Работает в клиниках', '—')}")
-                    st.write(f"**Отзывов:** {row.get('Сумма Отзывов', '—')}")
-                    st.write(f"**Рейтинг:** {row.get('Сумма Рейтинг', '—')}")
+            st.write(f"**{row['Имя врача']}**")
         with columns[2]:
-            st.write(row["Специальность"])
+            st.write(f"**Стаж:** {row.get('Сумма Стаж', '—')} лет")
         with columns[3]:
-            st.write(row.get("Рейтинг_1", "—"))
+            st.write(f"**Ученая степень:** {row.get('Ученая степень', '—')}")
         with columns[4]:
-            if search_text.strip() == "":
-                st.write(row["Отзыв"])
-            else:
-                highlighted = highlight_keywords(row["Отзыв"], search_text)
-                st.markdown(highlighted, unsafe_allow_html=True)
-            with st.expander("Подробнее об отзыве"):
-                st.write(f"**Имя клиента:** {row.get('Имя клиента', '—')}")
-                st.write(f"**Дата отзыва:** {row.get('Дата отзыва', '—')}")
-                st.write(f"**Оценка:** {row.get('Рейтинг_1', '—')}")
-                st.write(f"**Подтверждение записи:** {row.get('Подтверждение записи', '—')}")
+            st.write(f"**Учереждения:** {row.get('Работает в клиниках', '—')}")
+        with columns[5]:
+            st.write(f"**Отзывов:** {row.get('Сумма Отзывов', '—')}")
+        with columns[6]:
+            st.write(f"**Рейтинг:** {row.get('Сумма Рейтинг', '—')}")
+        with columns[7]:
+            if st.button("Отзывы", key=f"rev_{row['Ссылка']}"):
+                dr_reviews = reviews[reviews["Ссылка"] == row["Ссылка"]][['Рейтинг_1', 'Отзыв']]
+                
+                with output_placeholder.container():
+                    st.markdown(f"### 📝 Отзывы о враче: {row['Имя врача']}")
 
-        st.markdown("</div>", unsafe_allow_html=True)
-    
+                    st.dataframe(
+                        dr_reviews,
+                        width='stretch',
+                        column_config={
+                            "Рейтинг": st.column_config.NumberColumn("Рейтнг_1", width="50px"),
+                            "Отзыв": st.column_config.TextColumn("Отзыв"),
+                        }
+                    )
+
+                    st.divider()
 
