@@ -3,7 +3,7 @@ import pandas as pd
 import re
 import pymorphy3
 
-morph = pymorphy3.MorphAnalyzer()
+morph = pymorphy3.MorphAnalyzer() # Для фильтра по ключевому слову
 
 def highlight_all(text, query, color):
     if not isinstance(text, str):
@@ -105,7 +105,6 @@ if specialities:
 
 if work_places.strip() != "":
     filtered = filtered[filtered["Работает в клиниках"].str.contains(work_places, case=False, na=False)]
-
 
 # ---------------- Применение фильтров ----------------
 if len(filtered["Ученая степень"].isin(degree).unique()) != 1 or min_exp != 0 or min_rating != 0: #len(filtered["Ученая степень"].isin(degree).unique()) != 1
