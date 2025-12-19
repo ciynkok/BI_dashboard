@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 
-def highlight_keywords(text, keywords):
+def highlight_keywords(text, keywords, color):
     if not keywords.strip():
         return text
     
@@ -15,7 +15,8 @@ def highlight_keywords(text, keywords):
     pattern = re.compile(r"(" + "|".join(map(re.escape, words)) + r")", re.IGNORECASE)
 
     # Подсвечиваем
-    return pattern.sub(r"<mark>\1</mark>", text)
+    return pattern.sub(r'<mark style="background-color:' + color + r'">\1</mark>', text)
+
 
 # ---- Заголовок ----
 
@@ -37,10 +38,7 @@ name_query = st.sidebar.text_input(
     value=""
 )
 
-specialities = st.sidebar.text_input(
-    "Специальность:",
-    value=""
-)
+specialities = st.text_input("Поиск по специальности")#st.sidebar.text_input("Специальность:", value="")
 
 degree = st.sidebar.multiselect(
     "Ученая степень:",
@@ -73,10 +71,10 @@ min_rating = st.sidebar.number_input(
 
 search_text = st.text_input("Поиск по отзывам (введите ключевые слова):")
 
+filtered_reviews = reviews.copy()
 if search_text:
-    filtered_reviews = reviews[reviews["Отзыв"].str.contains(search_text, case=False, na=False)]
-else:
-    filtered_reviews = reviews.copy()
+    filtered_reviews = filtered_reviews[filtered_reviews["Отзыв"].str.contains(search_text, case=False, na=False)]
+
 
 
 
@@ -85,8 +83,12 @@ filtered = doctors.copy()
 if name_query.strip() != "":
     filtered = filtered[filtered["Имя врача"].str.contains(name_query, case=False, na=False)]
 
-if specialities.strip() != "":
-    filtered = filtered[filtered["Специальность"].str.contains(specialities, case=False, na=False)]
+#if specialities.strip() != "": filtered_reviews = reviews[reviews["Отзыв"].str.contains(specialities, case=False, na=False)]
+
+if specialities: 
+    filtered_reviews = filtered_reviews[filtered_reviews["Отзыв"].str.contains(specialities, case=False, na=False)]
+
+
 
 if work_places.strip() != "":
     filtered = filtered[filtered["Работает в клиниках"].str.contains(work_places, case=False, na=False)]
@@ -205,11 +207,9 @@ def gen_pagination(filt):
 
 
 
-if search_text:
+if search_text or specialities:
 
     st.subheader("📋 Список отзывов")
-
-    filtered_reviews = reviews[reviews["Отзыв"].str.contains(search_text, case=False, na=False)]
 
     filtered = filtered_reviews.merge(filtered, on="Ссылка", how="left")
     filtered = filtered.sort_values(by=["Имя врача"])
@@ -274,10 +274,17 @@ if search_text:
             with columns[3]:
                 st.write(row.get("Рейтинг_1", "—"))
             with columns[4]:
-                if search_text.strip() == "":
+                if search_text.strip() == "" and specialities.strip() == "":
                     st.write(row["Отзыв"])
+                elif search_text.strip() != "" and specialities.strip() == "":
+                    highlighted = highlight_keywords(row['Отзыв'], search_text, 'yellow')
+                    st.markdown(highlighted, unsafe_allow_html=True)
+                elif specialities.strip() != "" and search_text.strip() == "":
+                    highlighted = highlight_keywords(row['Отзыв'], specialities, '#B3E5FC')
+                    st.markdown(highlighted, unsafe_allow_html=True)
                 else:
-                    highlighted = highlight_keywords(row["Отзыв"], search_text)
+                    highlighted = highlight_keywords(row['Отзыв'], search_text, 'yellow')
+                    highlighted = highlight_keywords(highlighted, specialities, '#B3E5FC')
                     st.markdown(highlighted, unsafe_allow_html=True)
                 with st.expander("Подробнее об отзыве"):
                     st.write(f"**Имя клиента:** {row.get('Имя клиента', '—')}")
