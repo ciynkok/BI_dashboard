@@ -38,7 +38,7 @@ name_query = st.sidebar.text_input(
     value=""
 )
 
-specialities = st.sidebar.text_input("Поиск по специальности")#st.sidebar.text_input("Специальность:", value="")
+specialities = st.sidebar.text_input("Специальность:", value="")
 
 degree = st.sidebar.multiselect(
     "Ученая степень:",
