@@ -45,6 +45,7 @@ def load_data():
     return doctors, reviews
 
 doctors, reviews = load_data()
+doctors['Сумма Рейтинг'] *= 5
 
 st.sidebar.header("Фильтры врачей")
 
